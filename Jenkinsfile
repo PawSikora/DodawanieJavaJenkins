@@ -42,8 +42,16 @@ pipeline {
   }
 
   post {
-    always {
-      echo 'Pipeline zakończony.'
-    }
+  success {
+    mail to: 'test@example.com',
+         subject: "Build ${env.JOB_NAME} #${env.BUILD_NUMBER} SUKCES",
+         body: "Build zakończony powodzeniem."
   }
+  failure {
+    mail to: 'test@example.com',
+         subject: "Build ${env.JOB_NAME} #${env.BUILD_NUMBER} NIEPOWODZENIE",
+         body: "Build nie powiódł się. Sprawdź logi."
+  }
+}
+
 }
