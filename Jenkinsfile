@@ -1,38 +1,41 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
+  tools {
+    maven 'Maven 3.9.6'
+  }
 
-        stage('Build & Test') {
-            agent {
-                docker {
-                    image 'maven:3.9.6-eclipse-temurin-17'
-                    args '-v $HOME/.m2:/root/.m2'
-                }
-            }
-            stages {
-                stage('Build') {
-                    steps {
-                        sh 'mvn clean package -DskipTests'
-                    }
-                }
-
-                stage('Test') {
-                    steps {
-                        sh 'mvn test'
-                    }
-                    post {
-                        always {
-                            junit '**/target/surefire-reports/*.xml'
-                        }
-                    }
-                }
-            }
-        }
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
     }
+
+    stage('Build & Test') {
+      agent {
+        docker {
+          image 'maven:3.9.6-eclipse-temurin-17'
+          args '-v /root/.m2:/root/.m2'
+        }
+      }
+      steps {
+        sh 'mvn clean test'
+        stash includes: 'target/surefire-reports/*.xml', name: 'test-results'
+      }
+    }
+
+    stage('Publish Test Results') {
+      steps {
+        unstash 'test-results'
+        junit 'target/surefire-reports/*.xml'
+      }
+    }
+  }
+
+  post {
+    always {
+      echo "Pipeline zakończony."
+    }
+  }
 }
