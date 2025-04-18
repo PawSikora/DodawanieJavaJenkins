@@ -5,6 +5,10 @@ pipeline {
     maven 'Maven 3.9.6'
   }
 
+  environment {
+    MAVEN_OPTS = "-Dmaven.repo.local=.m2/repository"
+  }
+
   stages {
     stage('Checkout') {
       steps {
@@ -31,11 +35,33 @@ pipeline {
         junit 'target/surefire-reports/*.xml'
       }
     }
+
+    stage('SonarQube Analysis') {
+      steps {
+        withSonarQubeEnv('SonarQube') {
+          sh 'mvn sonar:sonar -Dsonar.projectKey=DodawanieJava -Dsonar.projectName=DodawanieJava'
+        }
+      }
+    }
+
+    stage('Quality Gate') {
+      steps {
+        timeout(time: 1, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
   }
 
   post {
+    success {
+      echo 'Pipeline zakończony sukcesem.'
+    }
+    failure {
+      echo 'Pipeline nie powiódł się.'
+    }
     always {
-      echo "Pipeline zakończony."
+      echo 'Pipeline zakończony.'
     }
   }
 }
